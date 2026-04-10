@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Paths exposed by the app's FileProvider for outbound sharing.
+
+    Only the app-private documents directory is listed: when the user
+    explicitly chooses to share a private document (after a
+    confirmation dialog AND a biometric / device-credential check),
+    the share intent carries a content:// URI minted by FileProvider
+    against this entry. Nothing else under filesDir/ — recents.json,
+    settings.json, etc. — is reachable through the provider.
+
+    The entry maps `filesDir/private_documents/` to URI segment
+    `private_documents/` under the provider authority
+    "${applicationId}.fileprovider".
+-->
+<paths>
+    <files-path
+        name="private_documents"
+        path="private_documents/" />
+</paths>

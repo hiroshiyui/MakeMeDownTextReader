@@ -26,6 +26,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- FileProvider used exclusively for outbound sharing of
+             documents the user has explicitly chosen to send out of
+             the app-private space, after a confirmation dialog and a
+             biometric / device-credential check.
+
+             Only the paths listed in @xml/file_paths are exposed
+             (currently just filesDir/private_documents/), and the
+             provider is not exported, so other apps can only read a
+             URI that this app actively granted them via
+             FLAG_GRANT_READ_URI_PERMISSION on a SEND intent. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

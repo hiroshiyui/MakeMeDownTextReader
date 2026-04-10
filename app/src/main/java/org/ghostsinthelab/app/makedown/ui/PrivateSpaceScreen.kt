@@ -18,6 +18,8 @@
 
 package org.ghostsinthelab.app.makedown.ui
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -45,6 +48,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,13 +59,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
+import org.ghostsinthelab.app.makedown.auth.rememberDeviceAuthLauncher
 import org.ghostsinthelab.app.makedown.data.DocumentType
 import org.ghostsinthelab.app.makedown.data.PrivateDocument
 import org.ghostsinthelab.app.makedown.data.PrivateStore
@@ -77,11 +85,46 @@ fun PrivateSpaceScreen(
     val store = remember { PrivateStore.get(context) }
     val docs by store.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
 
     var newMenuOpen by remember { mutableStateOf(false) }
     var newFileType by remember { mutableStateOf<DocumentType?>(null) }
 
+    // Two-stage share state.
+    //
+    //   confirmingShare != null  →  confirmation dialog is up
+    //   verifyingShare   != null  →  biometric prompt is in flight
+    //
+    // The user must clear BOTH stages every single time they want to
+    // export a private document. We never cache "I already confirmed
+    // once" — every share invocation re-asks and re-authenticates.
+    var confirmingShare by remember { mutableStateOf<PrivateDocument?>(null) }
+    var verifyingShare by remember { mutableStateOf<PrivateDocument?>(null) }
+    val verifyingRef = rememberUpdatedState(verifyingShare)
+
+    val launchShareVerification = rememberDeviceAuthLauncher(
+        title = "Confirm export",
+        subtitle = "Authenticate to send a private document to another app",
+        onSuccess = {
+            val doc = verifyingRef.value
+            verifyingShare = null
+            if (doc != null) {
+                runCatching { sharePrivateDocument(context, doc) }
+                    .onFailure { e ->
+                        scope.launch {
+                            snackbar.showSnackbar("Share failed: ${e.message ?: e::class.simpleName}")
+                        }
+                    }
+            }
+        },
+        onError = { msg ->
+            verifyingShare = null
+            scope.launch { snackbar.showSnackbar("Share cancelled: $msg") }
+        },
+    )
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Private documents") },
@@ -158,6 +201,7 @@ fun PrivateSpaceScreen(
                                 )
                             )
                         },
+                        onShare = { confirmingShare = doc },
                         onDelete = {
                             scope.launch { store.delete(doc.fileName) }
                         },
@@ -189,6 +233,65 @@ fun PrivateSpaceScreen(
             },
         )
     }
+
+    // Stage 1 of share: explicit confirmation that the user understands
+    // they're sending a private document outside the locked space.
+    val confirming = confirmingShare
+    if (confirming != null) {
+        AlertDialog(
+            onDismissRequest = { confirmingShare = null },
+            title = { Text("Share private document?") },
+            text = {
+                Text(
+                    "“${confirming.displayName}” is in your private space. " +
+                        "Sharing it lets the app you choose read its contents " +
+                        "and copy it outside this device's protected storage.\n\n" +
+                        "You'll be asked to authenticate before the file leaves " +
+                        "the private space.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingShare = null
+                    // Stage 2: biometric / device-credential.
+                    verifyingShare = confirming
+                    launchShareVerification()
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingShare = null }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+/**
+ * Mint a content:// URI for a private document via FileProvider and fire
+ * an ACTION_SEND chooser. The receiving app gets temporary read access
+ * via FLAG_GRANT_READ_URI_PERMISSION; nothing else under filesDir is
+ * exposed because @xml/file_paths only lists private_documents/.
+ *
+ * Throws if FileProvider can't construct a URI for the file (e.g. the
+ * caller passed something outside the configured paths). The caller is
+ * expected to surface the error.
+ */
+private fun sharePrivateDocument(context: Context, doc: PrivateDocument) {
+    val store = PrivateStore.get(context)
+    val file = store.fileOf(doc.fileName)
+    val authority = "${context.packageName}.fileprovider"
+    val uri = FileProvider.getUriForFile(context, authority, file)
+    val mime = when (doc.type) {
+        DocumentType.MARKDOWN -> "text/markdown"
+        DocumentType.PLAIN_TEXT -> "text/plain"
+        DocumentType.EPUB -> "application/epub+zip"
+    }
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = mime
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TITLE, doc.displayName)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(send, "Share ${doc.displayName}"))
 }
 
 /** URI scheme used to mark a [Screen.Reader] target as belonging to the
@@ -201,6 +304,7 @@ const val PRIVATE_URI_PREFIX: String = "private://"
 private fun PrivateDocumentRow(
     doc: PrivateDocument,
     onClick: () -> Unit,
+    onShare: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Row(
@@ -243,6 +347,13 @@ private fun PrivateDocumentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        IconButton(onClick = onShare) {
+            Icon(
+                Icons.Default.Share,
+                contentDescription = "Share private document (requires confirmation and authentication)",
+                modifier = Modifier.size(20.dp),
+            )
         }
         IconButton(onClick = onDelete) {
             Icon(
