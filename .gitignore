@@ -1,7 +1,10 @@
 *.iml
 .gradle
 /local.properties
-/.idea/
+# Ignore IDE metadata by default, but keep the shared copyright profile
+# so all contributors get the same GPL header template.
+/.idea/*
+!/.idea/copyright/
 .DS_Store
 /build
 /captures
