@@ -2,24 +2,17 @@ package org.ghostsinthelab.app.makedown
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import org.ghostsinthelab.app.makedown.ui.HomeScreen
+import org.ghostsinthelab.app.makedown.ui.ReaderScreen
+import org.ghostsinthelab.app.makedown.ui.Screen
 import org.ghostsinthelab.app.makedown.ui.theme.MakeMeDownTextReaderTheme
 
 class MainActivity : ComponentActivity() {
@@ -28,64 +21,27 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MakeMeDownTextReaderTheme {
-                MakeMeDownTextReaderApp()
+                AppRoot()
             }
         }
     }
 }
 
-@PreviewScreenSizes
 @Composable
-fun MakeMeDownTextReaderApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
-
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            painterResource(it.icon),
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
-            }
-        }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
-        }
+private fun AppRoot() {
+    var screen: Screen by rememberSaveable(stateSaver = Screen.Saver) {
+        mutableStateOf(Screen.Home)
     }
-}
 
-enum class AppDestinations(
-    val label: String,
-    val icon: Int,
-) {
-    HOME("Home", R.drawable.ic_home),
-    FAVORITES("Favorites", R.drawable.ic_favorite),
-    PROFILE("Profile", R.drawable.ic_account_box),
-}
+    BackHandler(enabled = screen is Screen.Reader) {
+        screen = Screen.Home
+    }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MakeMeDownTextReaderTheme {
-        Greeting("Android")
+    when (val current = screen) {
+        Screen.Home -> HomeScreen(onOpen = { screen = it })
+        is Screen.Reader -> ReaderScreen(
+            target = current,
+            onBack = { screen = Screen.Home },
+        )
     }
 }
