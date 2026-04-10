@@ -1,3 +1,14 @@
 <component name="CopyrightManager">
-  <settings default="GPLv3 or later" />
+  <settings default="GPLv3 or later">
+    <!-- Never apply the project copyright to shell scripts: gradlew is
+         Gradle's Apache 2.0-licensed code and must not be relicensed. -->
+    <LanguageOptions name="Shell Script">
+      <option name="fileTypeOverride" value="3" />
+    </LanguageOptions>
+    <!-- Same goes for .properties files (gradle.properties,
+         gradle-wrapper.properties, gradle-daemon-jvm.properties). -->
+    <LanguageOptions name="Properties">
+      <option name="fileTypeOverride" value="3" />
+    </LanguageOptions>
+  </settings>
 </component>
