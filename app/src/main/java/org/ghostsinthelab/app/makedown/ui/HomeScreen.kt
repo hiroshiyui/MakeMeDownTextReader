@@ -21,8 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -35,7 +38,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -57,13 +63,8 @@ fun HomeScreen(
     val items by recents.state.collectAsState()
     val scope = rememberCoroutineScope()
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = OpenDocumentRW(),
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        // Try to take a persistable read+write permission so edits can be saved
-        // across process restarts. Fall back to read-only if the provider
-        // refuses write (e.g. read-only storage).
+    // Shared handler: persist RW permission, add to recents, navigate to reader.
+    fun openPickedUri(uri: Uri, forcedType: DocumentType? = null, initialEdit: Boolean = false) {
         val rwFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         runCatching { context.contentResolver.takePersistableUriPermission(uri, rwFlags) }
             .recoverCatching {
@@ -73,7 +74,7 @@ fun HomeScreen(
                 )
             }
         val (displayName, mime) = queryNameAndMime(context, uri)
-        val type = DocumentType.detect(mime, displayName)
+        val type = forcedType ?: DocumentType.detect(mime, displayName)
         val record = RecentFile(
             uri = uri.toString(),
             displayName = displayName,
@@ -81,17 +82,74 @@ fun HomeScreen(
             lastOpenedAt = System.currentTimeMillis(),
         )
         scope.launch { recents.add(record) }
-        onOpen(Screen.Reader(uri = record.uri, displayName = displayName, type = type))
+        onOpen(
+            Screen.Reader(
+                uri = record.uri,
+                displayName = displayName,
+                type = type,
+                initialEdit = initialEdit,
+            )
+        )
     }
+
+    val openLauncher = rememberLauncherForActivityResult(
+        contract = OpenDocumentRW(),
+    ) { uri: Uri? -> if (uri != null) openPickedUri(uri) }
+
+    // Two separate CreateDocument launchers — the contract bakes the mime
+    // type in at construction, so we need one per supported new-file format.
+    val createMarkdownLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/markdown"),
+    ) { uri: Uri? ->
+        if (uri != null) openPickedUri(uri, forcedType = DocumentType.MARKDOWN, initialEdit = true)
+    }
+    val createPlainTextLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri: Uri? ->
+        if (uri != null) openPickedUri(uri, forcedType = DocumentType.PLAIN_TEXT, initialEdit = true)
+    }
+
+    var newMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("MakeMeDown") })
+            TopAppBar(
+                title = { Text("MakeMeDown") },
+                actions = {
+                    Box {
+                        IconButton(onClick = { newMenuOpen = true }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "New file",
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = newMenuOpen,
+                            onDismissRequest = { newMenuOpen = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("New Markdown") },
+                                onClick = {
+                                    newMenuOpen = false
+                                    createMarkdownLauncher.launch("untitled.md")
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("New plain text") },
+                                onClick = {
+                                    newMenuOpen = false
+                                    createPlainTextLauncher.launch("untitled.txt")
+                                },
+                            )
+                        }
+                    }
+                },
+            )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    launcher.launch(
+                    openLauncher.launch(
                         arrayOf(
                             "application/epub+zip",
                             "text/markdown",
@@ -114,7 +172,7 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No recent files.\nTap “Open file” to read an EPUB, Markdown, or plain‑text document.",
+                    text = "No recent files.\nTap “Open file” to read an EPUB, Markdown, or plain‑text document, or use the pencil icon above to create a new one.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

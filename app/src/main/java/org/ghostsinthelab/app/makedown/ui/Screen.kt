@@ -10,6 +10,10 @@ sealed interface Screen {
         val uri: String,
         val displayName: String,
         val type: DocumentType,
+        /** If true, the reader should enter edit mode the first time this
+         *  target loads. Consumed after the first use so subsequent restores
+         *  (config change, process death) don't re-enter edit mode. */
+        val initialEdit: Boolean = false,
     ) : Screen
 
     companion object {
@@ -23,6 +27,7 @@ sealed interface Screen {
                             putString("uri", screen.uri)
                             putString("name", screen.displayName)
                             putString("type", screen.type.name)
+                            putBoolean("initialEdit", screen.initialEdit)
                         }
                     }
                 }
@@ -35,6 +40,7 @@ sealed interface Screen {
                         type = DocumentType.valueOf(
                             bundle.getString("type") ?: DocumentType.PLAIN_TEXT.name
                         ),
+                        initialEdit = bundle.getBoolean("initialEdit", false),
                     )
                     else -> Home
                 }

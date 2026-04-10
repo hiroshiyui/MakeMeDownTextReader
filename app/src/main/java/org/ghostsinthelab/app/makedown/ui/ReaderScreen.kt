@@ -56,6 +56,10 @@ fun ReaderScreen(
 
     // Edit mode state.
     var editing by rememberSaveable(target.uri) { mutableStateOf(false) }
+    // Tracks whether we have already honored target.initialEdit for this uri.
+    // Without this flag, a config change or process restart would silently
+    // re-enter edit mode after the user has explicitly left it.
+    var initialEditConsumed by rememberSaveable(target.uri) { mutableStateOf(false) }
     var editorValue by rememberSaveable(
         target.uri,
         stateSaver = TextFieldValue.Saver,
@@ -89,6 +93,25 @@ fun ReaderScreen(
     fun startEdit() {
         editorValue = TextFieldValue(savedText)
         editing = true
+    }
+
+    // Honor target.initialEdit once, after the document loads. A freshly
+    // created file arrives empty, and the user expects to land in edit mode.
+    LaunchedEffect(loaded, target.initialEdit) {
+        if (
+            target.initialEdit &&
+            !initialEditConsumed &&
+            isTextual &&
+            loaded != null &&
+            !editing
+        ) {
+            startEdit()
+            initialEditConsumed = true
+        } else if (loaded != null && !initialEditConsumed) {
+            // Even when initialEdit is false, mark it consumed so later
+            // recompositions don't reconsider the flag.
+            initialEditConsumed = true
+        }
     }
 
     fun attemptExitEdit() {
