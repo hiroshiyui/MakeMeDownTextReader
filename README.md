@@ -34,6 +34,34 @@ Markdown files in place without bouncing out to a different tool.
 - Save / Done split with a "you have unsaved changes" dialog, a `•`
   dirty marker in the title, and a Snackbar for save success/failure.
 
+### Private documents (locked, on-device only)
+- A separate **private space** for documents you don't want any other
+  app to see. Backed by a single flat directory at
+  `filesDir/private_documents/` — internal storage, no other app can
+  read or write it without root, no runtime permission involved.
+- Entry to the space is gated by a **biometric / device-credential
+  prompt**: any enrolled fingerprint or face, or the system PIN,
+  pattern, or password — whichever is set up. Cold start after the
+  process is killed always re-prompts; rotation and brief
+  backgrounding don't.
+- Auto Backup is **disabled** for the private directory in both
+  `backup_rules.xml` (pre-Android 12) and `data_extraction_rules.xml`
+  (cloud-backup *and* device-to-device transfer). Files placed in the
+  private space stay on the install they were created on.
+- New Markdown / plain-text files can be created from inside the
+  space, opened in the same editor as the rest of the app, and
+  navigated to/from the reader without re-authenticating until you
+  leave the space entirely.
+- **Share / export** is allowed but never silent. Every share
+  invocation requires both an explicit confirmation dialog **and** a
+  fresh biometric / device-credential check before the file leaves
+  the private space. There is no "I authenticated 30 seconds ago"
+  cache. The receiving app gets a temporary `content://` URI minted
+  by a non-exported FileProvider with `FLAG_GRANT_READ_URI_PERMISSION`,
+  and only the `private_documents/` directory is exposed through that
+  provider — `recents.json`, `settings.json`, and the rest of
+  `filesDir/` remain unreachable.
+
 ### Reading controls
 - A **bottom app bar** in the reader with a back-to-home button,
   `A−` / pt label / `A+` zoom controls, and an `Aa` dropdown to switch
@@ -66,6 +94,12 @@ Markdown files in place without bouncing out to a different tool.
 - **compileSdk 36.1**.
 - Built with Android Gradle Plugin 9.1.0 and Kotlin 2.2.10.
 
+The only declared permission is `USE_BIOMETRIC` (a normal,
+auto-granted permission used by the private space's unlock prompt).
+The private documents space requires the user to have a system
+unlock method enrolled — fingerprint, face, PIN, pattern, or
+password — otherwise the prompt has nothing to verify against.
+
 ## Building
 
 ```bash
@@ -84,17 +118,27 @@ All code lives under `org.ghostsinthelab.app.makedown`:
 
 | Package | What's there |
 | --- | --- |
-| `data/` | `DocumentType`, `RecentFile`/`RecentsRepository`, `ReaderFont`, `Settings`/`SettingsRepository` — JSON-backed persistence using kotlinx.serialization. |
-| `io/` | `DocumentLoader` (`Uri → LoadedDocument` on `Dispatchers.IO`), `DocumentSaver` (write-back via `contentResolver.openOutputStream(uri, "wt")`). |
+| `data/` | `DocumentType`, `RecentFile`/`RecentsRepository`, `ReaderFont`, `Settings`/`SettingsRepository`, `PrivateDocument`/`PrivateStore`. JSON-backed persistence (kotlinx.serialization) for repositories; the private store uses plain `java.io.File` rooted at `filesDir/private_documents/`. |
+| `io/` | `DocumentLoader` (`Uri → LoadedDocument` on `Dispatchers.IO`, plus `loadPrivate(fileName)` for private docs), `DocumentSaver` (`save` via `contentResolver.openOutputStream(uri, "wt")`, plus `savePrivate(fileName)` writing through `PrivateStore`). |
+| `auth/` | `DeviceAuth` — `rememberDeviceAuthLauncher(title, subtitle, onSuccess, onError)` Compose helper that pops a `BiometricPrompt` configured with `setDeviceCredentialAllowed(true)` so any biometric *or* the system PIN/pattern/password can satisfy it. Used by both the private-space unlock and the share confirmation. |
 | `reader/text/` | `PlainTextReader` — line-by-line `LazyColumn`. |
 | `reader/markdown/` | `MarkdownAst`, `MarkdownToBlocks` (AST walker), `MarkdownReader` (Compose renderer + raw toggle). |
 | `reader/epub/` | `EpubModel`, `EpubParser` (zip + container + OPF), `XhtmlToBlocks` (XHTML walker), `EpubReader` (chapter pager + renderer). |
-| `ui/` | `Screen` (sealed nav state), `HomeScreen`, `ReaderScreen`, `SettingsScreen`, `TextEditor`, `ReaderBottomBar`, `LocalReaderFontFamily` / `LocalReaderFontScale` + `TextStyle.scaledBy(factor)`. |
+| `ui/` | `Screen` (sealed nav state, including `PrivateSpace`), `HomeScreen`, `ReaderScreen`, `SettingsScreen`, `PrivateSpaceScreen` (with the two-stage confirm + verify share flow), `TextEditor`, `ReaderBottomBar`, `LocalReaderFontFamily` / `LocalReaderFontScale` + `TextStyle.scaledBy(factor)`. |
 | `ui/theme/` | Solarized palette, Material 3 color scheme mapping, Roboto Slab-based `Typography`. |
-| `MainActivity.kt` | `AppRoot` composable holding the `Screen` state and providing the reader font / scale composition locals from `SettingsRepository`. |
+| `MainActivity.kt` | `FragmentActivity` host (required by `BiometricPrompt`). `AppRoot` composable holds the `Screen` state, provides the reader font / scale composition locals from `SettingsRepository`, owns the `PrivateSpaceSession` process-scoped unlock flag, and routes the reader's back action to the right source screen (Home for SAF documents, PrivateSpace for `private://` documents). |
 
 Navigation is a sealed `Screen` state saved via a custom `Saver` — no
 `androidx.navigation` dependency.
+
+Outbound sharing of private documents goes through an
+`androidx.core.content.FileProvider` declared in
+`AndroidManifest.xml` with authority `${applicationId}.fileprovider`,
+`exported=false`, and `grantUriPermissions=true`. The exposed paths
+in `res/xml/file_paths.xml` consist of exactly one entry —
+`<files-path name="private_documents" path="private_documents/" />`
+— so nothing else under `filesDir/` is reachable through the
+provider.
 
 ## Third-party
 
@@ -106,6 +150,9 @@ Navigation is a sealed `Screen` state saved via a custom `Saver` — no
   0.7.3 — Apache License 2.0.
 - [**kotlinx.serialization**](https://github.com/Kotlin/kotlinx.serialization)
   1.7.3 — Apache License 2.0.
+- [**androidx.biometric**](https://developer.android.com/jetpack/androidx/releases/biometric)
+  1.1.0 — drives the private-space unlock prompt and the share
+  re-verification. Apache License 2.0.
 - **Solarized** palette by
   [Ethan Schoonover](https://ethanschoonover.com/solarized/) — MIT.
 - **AndroidX** / Jetpack Compose — Apache License 2.0.
