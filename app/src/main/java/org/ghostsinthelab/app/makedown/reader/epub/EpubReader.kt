@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -46,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontScale
+import org.ghostsinthelab.app.makedown.ui.scaledBy
 
 @Composable
 fun EpubReader(
@@ -150,9 +152,10 @@ private fun LazyListScope.blockItems(
 @Composable
 internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArray>) {
     val readerFont = LocalReaderFontFamily.current
+    val scale = LocalReaderFontScale.current
     when (block) {
         is EpubBlock.Heading -> {
-            val style = when (block.level) {
+            val base = when (block.level) {
                 1 -> MaterialTheme.typography.headlineLarge
                 2 -> MaterialTheme.typography.headlineMedium
                 3 -> MaterialTheme.typography.headlineSmall
@@ -162,7 +165,7 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
             }
             Text(
                 text = block.text,
-                style = style,
+                style = base.scaledBy(scale),
                 fontFamily = readerFont,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -173,7 +176,7 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
         is EpubBlock.Paragraph -> {
             Text(
                 text = block.text,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.scaledBy(scale),
                 fontFamily = readerFont,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -224,8 +227,8 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
                 Text(
                     text = block.text,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 13.sp.scaledBy(scale),
+                    lineHeight = 18.sp.scaledBy(scale),
                     softWrap = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -254,7 +257,9 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
             } else if (!block.alt.isNullOrBlank()) {
                 Text(
                     text = block.alt,
-                    style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                    style = MaterialTheme.typography.bodySmall
+                        .copy(fontStyle = FontStyle.Italic)
+                        .scaledBy(scale),
                     fontFamily = readerFont,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -266,12 +271,13 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
 @Composable
 private fun ListItemRow(marker: String, children: List<EpubBlock>, resources: Map<String, ByteArray>) {
     val readerFont = LocalReaderFontFamily.current
+    val scale = LocalReaderFontScale.current
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(
             text = "$marker ",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.scaledBy(scale),
             fontFamily = readerFont,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width((28f * scale).dp),
         )
         Column(modifier = Modifier.fillMaxWidth()) {
             for (child in children) EpubBlockRenderer(child, resources)

@@ -13,9 +13,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import org.ghostsinthelab.app.makedown.data.DEFAULT_READER_BASE_PT
 import org.ghostsinthelab.app.makedown.data.SettingsRepository
 import org.ghostsinthelab.app.makedown.ui.HomeScreen
 import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontScale
 import org.ghostsinthelab.app.makedown.ui.ReaderScreen
 import org.ghostsinthelab.app.makedown.ui.Screen
 import org.ghostsinthelab.app.makedown.ui.SettingsScreen
@@ -49,6 +51,7 @@ private fun AppRoot() {
 
     CompositionLocalProvider(
         LocalReaderFontFamily provides settings.readerFont.toFontFamily(),
+        LocalReaderFontScale provides (settings.baseFontSizePt / DEFAULT_READER_BASE_PT),
     ) {
         when (val current = screen) {
             Screen.Home -> HomeScreen(

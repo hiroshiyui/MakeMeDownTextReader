@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontScale
+import org.ghostsinthelab.app.makedown.ui.scaledBy
 
 @Composable
 fun PlainTextReader(
@@ -27,6 +29,9 @@ fun PlainTextReader(
         text.split('\n').mapIndexed { index, line -> LineItem(index, line) }
     }
     val fontFamily = LocalReaderFontFamily.current
+    val scale = LocalReaderFontScale.current
+    val fontSize = 14.sp.scaledBy(scale)
+    val lineHeight = 20.sp.scaledBy(scale)
     val listState = rememberLazyListState()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -39,8 +44,8 @@ fun PlainTextReader(
             Text(
                 text = if (item.line.isEmpty()) " " else item.line,
                 fontFamily = fontFamily,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
+                fontSize = fontSize,
+                lineHeight = lineHeight,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(vertical = 1.dp),
             )

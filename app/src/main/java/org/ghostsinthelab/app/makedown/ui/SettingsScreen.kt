@@ -1,6 +1,7 @@
 package org.ghostsinthelab.app.makedown.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,8 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import org.ghostsinthelab.app.makedown.data.MAX_READER_BASE_PT
+import org.ghostsinthelab.app.makedown.data.MIN_READER_BASE_PT
+import org.ghostsinthelab.app.makedown.data.READER_BASE_PT_STEP
 import org.ghostsinthelab.app.makedown.data.ReaderFont
 import org.ghostsinthelab.app.makedown.data.SettingsRepository
 
@@ -66,6 +74,25 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp),
         ) {
+            SectionHeader("Base font size")
+            Text(
+                text = "Controls the body text size for all reading surfaces, in " +
+                    "points. Headings and other roles scale proportionally. You can " +
+                    "also zoom in and out from the reader's bottom bar.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            BaseFontSizeStepper(
+                currentPt = settings.baseFontSizePt,
+                onChange = { newSize ->
+                    scope.launch {
+                        repo.update { it.copy(baseFontSizePt = newSize) }
+                    }
+                },
+            )
+            Spacer(Modifier.padding(vertical = 8.dp))
+
             SectionHeader("Reading font")
             Text(
                 text = "Applies to plain text, Markdown, and EPUB reading surfaces. " +
@@ -88,6 +115,59 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun BaseFontSizeStepper(
+    currentPt: Float,
+    onChange: (Float) -> Unit,
+) {
+    // Live preview renders a sample string at the currently-selected size so
+    // the user can judge the change without leaving the settings screen.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            TextButton(
+                onClick = { onChange(stepBaseFontSize(currentPt, -READER_BASE_PT_STEP)) },
+                enabled = currentPt > MIN_READER_BASE_PT,
+            ) { Text("A−", fontSize = 14.sp) }
+            Text(
+                text = "${currentPt.roundToInt()} pt",
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(72.dp),
+            )
+            TextButton(
+                onClick = { onChange(stepBaseFontSize(currentPt, READER_BASE_PT_STEP)) },
+                enabled = currentPt < MAX_READER_BASE_PT,
+            ) { Text("A+", fontSize = 18.sp) }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        ) {
+            Text(
+                text = "Sample — the quick brown fox jumps over the lazy dog.",
+                fontSize = ((currentPt * 4f) / 3f).sp,
+                lineHeight = ((currentPt * 4f) / 3f * 1.4f).sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/** Apply [delta] to [current] and clamp to supported range, rounded to 1 pt. */
+private fun stepBaseFontSize(current: Float, delta: Float): Float {
+    val raw = current + delta
+    val quantized = raw.roundToInt().toFloat()
+    return quantized.coerceIn(MIN_READER_BASE_PT, MAX_READER_BASE_PT)
 }
 
 @Composable

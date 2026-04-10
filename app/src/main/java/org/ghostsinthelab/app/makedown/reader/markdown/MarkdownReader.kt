@@ -3,7 +3,6 @@ package org.ghostsinthelab.app.makedown.reader.markdown
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ghostsinthelab.app.makedown.reader.text.PlainTextReader
 import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontScale
+import org.ghostsinthelab.app.makedown.ui.scaledBy
 
 @Composable
 fun MarkdownReader(
@@ -58,9 +60,10 @@ fun MarkdownReader(
 @Composable
 private fun RenderBlock(block: MdBlock) {
     val readerFont = LocalReaderFontFamily.current
+    val scale = LocalReaderFontScale.current
     when (block) {
         is MdBlock.Heading -> {
-            val style = when (block.level) {
+            val base = when (block.level) {
                 1 -> MaterialTheme.typography.headlineLarge
                 2 -> MaterialTheme.typography.headlineMedium
                 3 -> MaterialTheme.typography.headlineSmall
@@ -70,7 +73,7 @@ private fun RenderBlock(block: MdBlock) {
             }
             Text(
                 text = block.text,
-                style = style,
+                style = base.scaledBy(scale),
                 fontFamily = readerFont,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -81,7 +84,7 @@ private fun RenderBlock(block: MdBlock) {
         is MdBlock.Paragraph -> {
             Text(
                 text = block.text,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.scaledBy(scale),
                 fontFamily = readerFont,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -130,8 +133,8 @@ private fun RenderBlock(block: MdBlock) {
                 Text(
                     text = block.code,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 13.sp.scaledBy(scale),
+                    lineHeight = 18.sp.scaledBy(scale),
                     softWrap = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -148,12 +151,13 @@ private fun RenderBlock(block: MdBlock) {
 @Composable
 private fun ListRow(marker: String, itemBlocks: List<MdBlock>, key: Int) {
     val readerFont = LocalReaderFontFamily.current
+    val scale = LocalReaderFontScale.current
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(
             text = "$marker ",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.scaledBy(scale),
             fontFamily = readerFont,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width((28f * scale).dp),
         )
         Column(modifier = Modifier.fillMaxWidth()) {
             for (child in itemBlocks) {

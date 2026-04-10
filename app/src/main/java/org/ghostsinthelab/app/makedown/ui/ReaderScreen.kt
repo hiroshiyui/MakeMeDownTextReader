@@ -31,8 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.launch
 import org.ghostsinthelab.app.makedown.data.DocumentType
+import org.ghostsinthelab.app.makedown.data.ReaderFont
+import org.ghostsinthelab.app.makedown.data.SettingsRepository
 import org.ghostsinthelab.app.makedown.io.DocumentLoader
 import org.ghostsinthelab.app.makedown.io.DocumentSaver
 import org.ghostsinthelab.app.makedown.io.LoadedDocument
@@ -49,6 +52,8 @@ fun ReaderScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
+    val settingsRepo = remember { SettingsRepository.get(context) }
+    val settings by settingsRepo.state.collectAsState()
 
     var loaded by remember(target.uri) { mutableStateOf<LoadedDocument?>(null) }
     var error by remember(target.uri) { mutableStateOf<String?>(null) }
@@ -144,6 +149,25 @@ fun ReaderScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (!editing) {
+                ReaderBottomBar(
+                    baseFontSizePt = settings.baseFontSizePt,
+                    font = settings.readerFont,
+                    onBack = onBack,
+                    onBaseFontSizeChange = { newSize ->
+                        scope.launch {
+                            settingsRepo.update { it.copy(baseFontSizePt = newSize) }
+                        }
+                    },
+                    onFontChange = { newFont: ReaderFont ->
+                        scope.launch {
+                            settingsRepo.update { it.copy(readerFont = newFont) }
+                        }
+                    },
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
