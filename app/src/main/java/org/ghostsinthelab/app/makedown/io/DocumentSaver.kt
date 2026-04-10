@@ -22,6 +22,7 @@ import android.content.Context
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.ghostsinthelab.app.makedown.data.PrivateStore
 
 object DocumentSaver {
 
@@ -41,5 +42,10 @@ object DocumentSaver {
             stream.write(bytes)
             stream.flush()
         }
+    }
+
+    /** Write [text] as UTF-8 to a file in the app-private [PrivateStore]. */
+    suspend fun savePrivate(context: Context, fileName: String, text: String) {
+        PrivateStore.get(context).write(fileName, text)
     }
 }

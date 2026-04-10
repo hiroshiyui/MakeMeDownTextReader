@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+    Auto Backup rules.
+    See https://developer.android.com/guide/topics/data/autobackup
+
+    This file governs pre-Android 12 Auto Backup behaviour.
+    On Android 12+ data_extraction_rules.xml takes precedence.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Never include the private documents directory in Auto Backup.
+         This directory holds user documents explicitly placed in the
+         biometric-locked private space; backing them up to Google
+         servers would defeat the point. -->
+    <exclude domain="file" path="private_documents/" />
 </full-backup-content>

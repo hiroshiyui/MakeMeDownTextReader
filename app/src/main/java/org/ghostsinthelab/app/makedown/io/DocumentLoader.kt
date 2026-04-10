@@ -23,6 +23,7 @@ import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.ghostsinthelab.app.makedown.data.DocumentType
+import org.ghostsinthelab.app.makedown.data.PrivateStore
 import org.ghostsinthelab.app.makedown.reader.epub.EpubBook
 import org.ghostsinthelab.app.makedown.reader.epub.EpubParser
 
@@ -52,6 +53,26 @@ object DocumentLoader {
                 }
                 LoadedDocument.Epub(displayName, book)
             }
+        }
+    }
+
+    /**
+     * Load a document from the app-private [PrivateStore] by file name.
+     * EPUB is not supported in the private store — only plain text and
+     * Markdown can be created or edited there.
+     */
+    suspend fun loadPrivate(
+        context: Context,
+        fileName: String,
+        type: DocumentType,
+        displayName: String,
+    ): LoadedDocument = withContext(Dispatchers.IO) {
+        val store = PrivateStore.get(context)
+        val text = store.read(fileName)
+        when (type) {
+            DocumentType.PLAIN_TEXT -> LoadedDocument.PlainText(displayName, text)
+            DocumentType.MARKDOWN -> LoadedDocument.Markdown(displayName, text)
+            DocumentType.EPUB -> error("EPUB is not supported in the private store")
         }
     }
 
