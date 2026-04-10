@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
 
 @Composable
 fun EpubReader(
@@ -148,6 +149,7 @@ private fun LazyListScope.blockItems(
 
 @Composable
 internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArray>) {
+    val readerFont = LocalReaderFontFamily.current
     when (block) {
         is EpubBlock.Heading -> {
             val style = when (block.level) {
@@ -161,6 +163,7 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
             Text(
                 text = block.text,
                 style = style,
+                fontFamily = readerFont,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -171,6 +174,7 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
             Text(
                 text = block.text,
                 style = MaterialTheme.typography.bodyLarge,
+                fontFamily = readerFont,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
@@ -251,6 +255,7 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
                 Text(
                     text = block.alt,
                     style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                    fontFamily = readerFont,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -260,10 +265,12 @@ internal fun EpubBlockRenderer(block: EpubBlock, resources: Map<String, ByteArra
 
 @Composable
 private fun ListItemRow(marker: String, children: List<EpubBlock>, resources: Map<String, ByteArray>) {
+    val readerFont = LocalReaderFontFamily.current
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(
             text = "$marker ",
             style = MaterialTheme.typography.bodyLarge,
+            fontFamily = readerFont,
             modifier = Modifier.width(28.dp),
         )
         Column(modifier = Modifier.fillMaxWidth()) {

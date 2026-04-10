@@ -6,6 +6,7 @@ import org.ghostsinthelab.app.makedown.data.DocumentType
 
 sealed interface Screen {
     data object Home : Screen
+    data object Settings : Screen
     data class Reader(
         val uri: String,
         val displayName: String,
@@ -22,6 +23,7 @@ sealed interface Screen {
                 Bundle().apply {
                     when (screen) {
                         is Home -> putString("kind", "home")
+                        is Settings -> putString("kind", "settings")
                         is Reader -> {
                             putString("kind", "reader")
                             putString("uri", screen.uri)
@@ -42,6 +44,7 @@ sealed interface Screen {
                         ),
                         initialEdit = bundle.getBoolean("initialEdit", false),
                     )
+                    "settings" -> Settings
                     else -> Home
                 }
             },

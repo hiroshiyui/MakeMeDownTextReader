@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.ghostsinthelab.app.makedown.reader.text.PlainTextReader
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
 
 @Composable
 fun MarkdownReader(
@@ -56,6 +57,7 @@ fun MarkdownReader(
 
 @Composable
 private fun RenderBlock(block: MdBlock) {
+    val readerFont = LocalReaderFontFamily.current
     when (block) {
         is MdBlock.Heading -> {
             val style = when (block.level) {
@@ -69,6 +71,7 @@ private fun RenderBlock(block: MdBlock) {
             Text(
                 text = block.text,
                 style = style,
+                fontFamily = readerFont,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -79,6 +82,7 @@ private fun RenderBlock(block: MdBlock) {
             Text(
                 text = block.text,
                 style = MaterialTheme.typography.bodyLarge,
+                fontFamily = readerFont,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -143,10 +147,12 @@ private fun RenderBlock(block: MdBlock) {
 
 @Composable
 private fun ListRow(marker: String, itemBlocks: List<MdBlock>, key: Int) {
+    val readerFont = LocalReaderFontFamily.current
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(
             text = "$marker ",
             style = MaterialTheme.typography.bodyLarge,
+            fontFamily = readerFont,
             modifier = Modifier.width(28.dp),
         )
         Column(modifier = Modifier.fillMaxWidth()) {

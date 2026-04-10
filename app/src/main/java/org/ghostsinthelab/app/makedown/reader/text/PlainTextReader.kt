@@ -11,22 +11,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.ghostsinthelab.app.makedown.ui.LocalReaderFontFamily
 
 @Composable
 fun PlainTextReader(
     text: String,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-    monospace: Boolean = true,
 ) {
     // Pre-split into stable line items so LazyColumn can efficiently recycle.
     // Each item carries an index so identical lines remain distinct keys.
     val lines = remember(text) {
         text.split('\n').mapIndexed { index, line -> LineItem(index, line) }
     }
+    val fontFamily = LocalReaderFontFamily.current
     val listState = rememberLazyListState()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -38,7 +38,7 @@ fun PlainTextReader(
             // so the line wraps to the available display width.
             Text(
                 text = if (item.line.isEmpty()) " " else item.line,
-                fontFamily = if (monospace) FontFamily.Monospace else null,
+                fontFamily = fontFamily,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = MaterialTheme.colorScheme.onSurface,
