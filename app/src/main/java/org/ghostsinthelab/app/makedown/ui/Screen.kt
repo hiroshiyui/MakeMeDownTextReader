@@ -25,6 +25,12 @@ import org.ghostsinthelab.app.makedown.data.DocumentType
 sealed interface Screen {
     data object Home : Screen
     data object Settings : Screen
+    /** Locked, app-private documents space. Reaching it requires a
+     *  successful biometric / device-credential challenge handled in
+     *  AppRoot. The Saver round-trips the kind, but on cold start
+     *  AppRoot redirects to Home if the in-process unlock flag isn't
+     *  set, so process death always re-prompts for auth. */
+    data object PrivateSpace : Screen
     data class Reader(
         val uri: String,
         val displayName: String,
@@ -42,6 +48,7 @@ sealed interface Screen {
                     when (screen) {
                         is Home -> putString("kind", "home")
                         is Settings -> putString("kind", "settings")
+                        is PrivateSpace -> putString("kind", "private_space")
                         is Reader -> {
                             putString("kind", "reader")
                             putString("uri", screen.uri)
@@ -63,6 +70,7 @@ sealed interface Screen {
                         initialEdit = bundle.getBoolean("initialEdit", false),
                     )
                     "settings" -> Settings
+                    "private_space" -> PrivateSpace
                     else -> Home
                 }
             },

@@ -30,16 +30,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -52,6 +56,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -66,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.ghostsinthelab.app.makedown.auth.rememberDeviceAuthLauncher
 import org.ghostsinthelab.app.makedown.data.DocumentType
 import org.ghostsinthelab.app.makedown.data.RecentFile
 import org.ghostsinthelab.app.makedown.data.RecentsRepository
@@ -77,11 +85,22 @@ import java.util.Date
 fun HomeScreen(
     onOpen: (Screen.Reader) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenPrivateSpace: () -> Unit,
 ) {
     val context = LocalContext.current
     val recents = RecentsRepository.get(context)
     val items by recents.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+
+    val launchPrivateAuth = rememberDeviceAuthLauncher(
+        title = "Unlock private documents",
+        subtitle = "Authenticate to access your private space",
+        onSuccess = onOpenPrivateSpace,
+        onError = { msg ->
+            scope.launch { snackbar.showSnackbar(msg) }
+        },
+    )
 
     // Shared handler: persist RW permission, add to recents, navigate to reader.
     fun openPickedUri(uri: Uri, forcedType: DocumentType? = null, initialEdit: Boolean = false) {
@@ -132,6 +151,7 @@ fun HomeScreen(
     var newMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("MakeMeDown") },
@@ -190,21 +210,6 @@ fun HomeScreen(
             )
         },
     ) { innerPadding ->
-        if (items.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No recent files.\nTap “Open file” to read an EPUB, Markdown, or plain‑text document, or use the pencil icon above to create a new one.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            return@Scaffold
-        }
         LazyColumn(
             contentPadding = PaddingValues(
                 start = 0.dp,
@@ -214,22 +219,85 @@ fun HomeScreen(
             ),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.uri }) { recent ->
-                RecentRow(
-                    recent = recent,
-                    onClick = {
-                        onOpen(
-                            Screen.Reader(
-                                uri = recent.uri,
-                                displayName = recent.displayName,
-                                type = recent.type,
-                            )
-                        )
-                    },
-                    onDelete = { scope.launch { recents.remove(recent.uri) } },
-                )
+            // Always-visible entry into the locked private documents space.
+            // Tapping it triggers the system biometric / device-credential
+            // prompt; on success the parent navigates to PrivateSpaceScreen.
+            item {
+                PrivateSpaceTile(onUnlockRequested = launchPrivateAuth)
                 HorizontalDivider()
             }
+            if (items.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "No recent files.\nTap “Open file” to read an EPUB, Markdown, or plain‑text document, or use the pencil icon above to create a new one.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                items(items, key = { it.uri }) { recent ->
+                    RecentRow(
+                        recent = recent,
+                        onClick = {
+                            onOpen(
+                                Screen.Reader(
+                                    uri = recent.uri,
+                                    displayName = recent.displayName,
+                                    type = recent.type,
+                                )
+                            )
+                        },
+                        onDelete = { scope.launch { recents.remove(recent.uri) } },
+                    )
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivateSpaceTile(onUnlockRequested: () -> Unit) {
+    Surface(
+        onClick = onUnlockRequested,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Private documents",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "On‑device only • backups disabled • unlock to view",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

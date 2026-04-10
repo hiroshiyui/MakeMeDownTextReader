@@ -99,16 +99,28 @@ fun ReaderScreen(
 
     val isTextual = target.type == DocumentType.MARKDOWN || target.type == DocumentType.PLAIN_TEXT
 
+    val isPrivate = target.uri.startsWith(PRIVATE_URI_PREFIX)
+    val privateFileName = if (isPrivate) target.uri.removePrefix(PRIVATE_URI_PREFIX) else null
+
     LaunchedEffect(target.uri) {
         loaded = null
         error = null
         runCatching {
-            DocumentLoader.load(
-                context = context,
-                uri = Uri.parse(target.uri),
-                type = target.type,
-                displayName = target.displayName,
-            )
+            if (isPrivate) {
+                DocumentLoader.loadPrivate(
+                    context = context,
+                    fileName = privateFileName!!,
+                    type = target.type,
+                    displayName = target.displayName,
+                )
+            } else {
+                DocumentLoader.load(
+                    context = context,
+                    uri = Uri.parse(target.uri),
+                    type = target.type,
+                    displayName = target.displayName,
+                )
+            }
         }.onSuccess { loaded = it }
             .onFailure { error = it.message ?: it::class.simpleName ?: "Failed to open" }
     }
@@ -145,7 +157,11 @@ fun ReaderScreen(
         val toWrite = editorValue.text
         scope.launch {
             runCatching {
-                DocumentSaver.save(context, Uri.parse(target.uri), toWrite)
+                if (isPrivate) {
+                    DocumentSaver.savePrivate(context, privateFileName!!, toWrite)
+                } else {
+                    DocumentSaver.save(context, Uri.parse(target.uri), toWrite)
+                }
             }.onSuccess {
                 // Update the loaded document so the rendered view reflects the
                 // new content when we leave edit mode.
