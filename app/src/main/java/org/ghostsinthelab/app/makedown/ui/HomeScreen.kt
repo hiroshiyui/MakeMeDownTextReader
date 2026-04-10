@@ -58,16 +58,20 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
+        contract = OpenDocumentRW(),
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        // Take a persistable read permission so we can reopen this URI later.
-        runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }
+        // Try to take a persistable read+write permission so edits can be saved
+        // across process restarts. Fall back to read-only if the provider
+        // refuses write (e.g. read-only storage).
+        val rwFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        runCatching { context.contentResolver.takePersistableUriPermission(uri, rwFlags) }
+            .recoverCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
         val (displayName, mime) = queryNameAndMime(context, uri)
         val type = DocumentType.detect(mime, displayName)
         val record = RecentFile(
@@ -198,6 +202,24 @@ private fun RecentRow(
                 Icons.Default.Delete,
                 contentDescription = "Remove from recents",
                 modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/**
+ * [ActivityResultContracts.OpenDocument] variant that additionally requests
+ * FLAG_GRANT_WRITE_URI_PERMISSION so the picked document can be saved back.
+ * Providers that don't grant write will still return a readable URI; the
+ * caller falls back to a read-only persistable permission.
+ */
+private class OpenDocumentRW : ActivityResultContracts.OpenDocument() {
+    override fun createIntent(context: Context, input: Array<String>): Intent {
+        return super.createIntent(context, input).apply {
+            addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
             )
         }
     }
