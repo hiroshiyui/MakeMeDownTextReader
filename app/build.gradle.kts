@@ -55,6 +55,18 @@ android {
     }
 }
 
+// Self-describing release artefacts so APKs uploaded to GitHub
+// Releases / sideloaded for review carry the package name and
+// version in their filename. With this set, the release build
+// produces `<applicationId>_v<versionName>-release.apk`
+// (and similarly for `-debug`), instead of the bare `app-release.apk`
+// AGP would otherwise emit.
+base {
+    archivesName.set(
+        "${android.defaultConfig.applicationId}_v${android.defaultConfig.versionName}"
+    )
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
