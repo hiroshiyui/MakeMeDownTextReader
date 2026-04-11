@@ -7,6 +7,12 @@
 !/.idea/copyright/
 .DS_Store
 /build
+# The standard AGP output dir `app/build/` is already covered by
+# `app/.gitignore`. The entries below catch Android Studio "Run"
+# builds that drop their APKs into `app/debug/` and `app/release/`
+# directly, alongside the module rather than under `build/`.
+/app/debug
+/app/release
 /captures
 .externalNativeBuild
 .cxx
