@@ -76,6 +76,52 @@ object DocumentLoader {
         }
     }
 
+    /**
+     * Load a document bundled inside the APK as an asset (under
+     * `app/src/main/assets/`). Used by the home-screen "sample
+     * documents" affordance, and by anything else that wants to ship a
+     * read-only document with the app. Supports all three document
+     * types (plain text, Markdown, EPUB).
+     *
+     * Samples are read-only by contract: there is no `saveSample(...)`,
+     * and the reader hides its Edit button for any URI that resolves
+     * to a sample.
+     */
+    suspend fun loadSample(
+        context: Context,
+        assetPath: String,
+        type: DocumentType,
+        displayName: String,
+    ): LoadedDocument = withContext(Dispatchers.IO) {
+        when (type) {
+            DocumentType.PLAIN_TEXT -> LoadedDocument.PlainText(
+                displayName,
+                readAssetText(context, assetPath),
+            )
+            DocumentType.MARKDOWN -> LoadedDocument.Markdown(
+                displayName,
+                readAssetText(context, assetPath),
+            )
+            DocumentType.EPUB -> {
+                val book = context.assets.open(assetPath).use { input ->
+                    EpubParser.parse(input)
+                }
+                LoadedDocument.Epub(displayName, book)
+            }
+        }
+    }
+
+    private fun readAssetText(context: Context, assetPath: String): String {
+        val bytes = context.assets.open(assetPath).use { it.readBytes() }
+        // Strip UTF-8 BOM if present, mirroring readText().
+        val start = if (bytes.size >= 3 &&
+            bytes[0] == 0xEF.toByte() &&
+            bytes[1] == 0xBB.toByte() &&
+            bytes[2] == 0xBF.toByte()
+        ) 3 else 0
+        return String(bytes, start, bytes.size - start, Charsets.UTF_8)
+    }
+
     private fun readText(context: Context, uri: Uri): String {
         val bytes = context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Cannot open document stream" }

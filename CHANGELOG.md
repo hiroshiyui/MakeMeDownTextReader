@@ -8,6 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-11
+
+Patch release that fixes inline Markdown rendering and bundles two
+sample documents inside the APK so the reader is useful out of the
+box without needing the user to find a document first.
+
+### Fixed
+
+- **Inline Markdown formatting rendered as literal asterisks /
+  underscores / tildes.** The `STRONG`, `EMPH`, and `STRIKETHROUGH`
+  branches in `MarkdownToBlocks.appendInline` recursed into their
+  child nodes via a shared helper, and the children included the
+  literal `*` / `_` (`MarkdownTokenTypes.EMPH`) and `~~`
+  (`GFMTokenTypes.TILDE`) marker tokens. Those marker tokens fell
+  through to the catch-all literal-text branch and were appended
+  verbatim with the bold / italic / strikethrough style wrapped
+  around them, so `**bold**` rendered as the visible characters
+  `**bold**` with bold weight applied to the asterisks too. The fix
+  mirrors the existing `CODE_SPAN` / `BACKTICK` pattern: the parent
+  handlers now explicitly skip the marker child tokens when
+  recursing. A new `MarkdownToBlocksTest` locks the behaviour in with
+  nine regression cases (bold, italic, strikethrough, nested
+  `***foo***`, surrounding text, and a `2 * 3 = 6` case confirming
+  stray asterisks outside an emphasis run still render literally).
+
+### Added
+
+- Two bundled sample documents under `app/src/main/assets/samples/`,
+  accessible from the pencil-icon dropdown on the home screen:
+    - **Déclaration universelle des droits de l'homme** — the
+      official French text of the UN Universal Declaration of Human
+      Rights (UN General Assembly Resolution 217 A (III), 10 December
+      1948), as a Markdown file. Exercises Roboto Slab's non-ASCII
+      glyph coverage and the reader's heading / list layout.
+    - **Little Women** by Louisa May Alcott — Project Gutenberg
+      ebook #37106 (`pg37106.epub`, 545 KB no-images variant, EPUB
+      2.0). Exercises the EPUB chapter pager and cover-image
+      rendering. The project's `EpubParser` is version-agnostic, so
+      EPUB 2 sample renders fine alongside the EPUB 3 support
+      advertised in the README.
+- `DocumentLoader.loadSample(context, assetPath, type, displayName)`
+  that reads from the APK's assets. Samples are routed via a new
+  `SAMPLE_URI_PREFIX` constant (`sample://`) on `Screen.Reader`
+  targets and are read-only by contract — the reader hides its
+  Edit / Save / Done buttons for any URI starting with that prefix.
+
 ## [1.0.1] - 2026-04-11
 
 Patch release that fixes a hard crash on the file-open / file-create
@@ -82,6 +128,7 @@ First public release.
   for Android 13+ themed icons that shows just the scanlined MMD
   wordmark.
 
-[Unreleased]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.2...HEAD
+[1.0.2]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/hiroshiyui/MakeMeDownTextReader/commits/1.0.0

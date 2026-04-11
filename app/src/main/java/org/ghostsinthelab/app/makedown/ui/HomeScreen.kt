@@ -181,6 +181,40 @@ fun HomeScreen(
                                     createPlainTextLauncher.launch("untitled.txt")
                                 },
                             )
+                            HorizontalDivider()
+                            // Bundled, read-only sample documents shipped under
+                            // app/src/main/assets/samples/. Routed via the
+                            // sample:// URI scheme so ReaderScreen knows to
+                            // load through DocumentLoader.loadSample and to
+                            // hide its Edit button.
+                            DropdownMenuItem(
+                                text = { Text("Sample: UDHR (français)") },
+                                onClick = {
+                                    newMenuOpen = false
+                                    onOpen(
+                                        Screen.Reader(
+                                            uri = SAMPLE_URI_PREFIX +
+                                                "samples/declaration-universelle-des-droits-de-l-homme-fr.md",
+                                            displayName = "Déclaration universelle des droits de l'homme",
+                                            type = DocumentType.MARKDOWN,
+                                        )
+                                    )
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Sample: Little Women (EPUB)") },
+                                onClick = {
+                                    newMenuOpen = false
+                                    onOpen(
+                                        Screen.Reader(
+                                            uri = SAMPLE_URI_PREFIX +
+                                                "samples/little-women-alcott.epub",
+                                            displayName = "Little Women",
+                                            type = DocumentType.EPUB,
+                                        )
+                                    )
+                                },
+                            )
                         }
                     }
                     IconButton(onClick = onOpenSettings) {

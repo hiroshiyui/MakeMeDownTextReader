@@ -101,20 +101,27 @@ fun ReaderScreen(
 
     val isPrivate = target.uri.startsWith(PRIVATE_URI_PREFIX)
     val privateFileName = if (isPrivate) target.uri.removePrefix(PRIVATE_URI_PREFIX) else null
+    val isSample = target.uri.startsWith(SAMPLE_URI_PREFIX)
+    val sampleAssetPath = if (isSample) target.uri.removePrefix(SAMPLE_URI_PREFIX) else null
 
     LaunchedEffect(target.uri) {
         loaded = null
         error = null
         runCatching {
-            if (isPrivate) {
-                DocumentLoader.loadPrivate(
+            when {
+                isPrivate -> DocumentLoader.loadPrivate(
                     context = context,
                     fileName = privateFileName!!,
                     type = target.type,
                     displayName = target.displayName,
                 )
-            } else {
-                DocumentLoader.load(
+                isSample -> DocumentLoader.loadSample(
+                    context = context,
+                    assetPath = sampleAssetPath!!,
+                    type = target.type,
+                    displayName = target.displayName,
+                )
+                else -> DocumentLoader.load(
                     context = context,
                     uri = Uri.parse(target.uri),
                     type = target.type,
@@ -227,7 +234,10 @@ fun ReaderScreen(
                             Text(if (showRaw) "Rendered" else "Raw")
                         }
                     }
-                    if (isTextual) {
+                    // Samples are bundled inside the APK as read-only assets,
+                    // so the Edit / Save / Done buttons are hidden for them —
+                    // there's nowhere to write a sample back to.
+                    if (isTextual && !isSample) {
                         if (editing) {
                             TextButton(
                                 enabled = isDirty,

@@ -165,15 +165,28 @@ object MarkdownToBlocks {
             MarkdownTokenTypes.HARD_LINE_BREAK -> builder.append('\n')
 
             MarkdownElementTypes.STRONG -> builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                inlineChildren(this, node, src)
+                // Skip the surrounding * / _ marker tokens, mirroring how the
+                // CODE_SPAN branch below skips its BACKTICK markers. Recurse
+                // into anything else so nested emphasis (e.g. ***foo***)
+                // keeps working — the inner EMPH *element* has type
+                // MarkdownElementTypes.EMPH, which is distinct from the
+                // MarkdownTokenTypes.EMPH marker token we're filtering out.
+                for (c in node.children) {
+                    if (c.type != MarkdownTokenTypes.EMPH) appendInline(this, c, src)
+                }
             }
             MarkdownElementTypes.EMPH -> builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                inlineChildren(this, node, src)
+                for (c in node.children) {
+                    if (c.type != MarkdownTokenTypes.EMPH) appendInline(this, c, src)
+                }
             }
             GFMElementTypes.STRIKETHROUGH -> builder.withStyle(
                 SpanStyle(textDecoration = TextDecoration.LineThrough)
             ) {
-                inlineChildren(this, node, src)
+                // Skip the surrounding ~ marker tokens.
+                for (c in node.children) {
+                    if (c.type != GFMTokenTypes.TILDE) appendInline(this, c, src)
+                }
             }
             MarkdownElementTypes.CODE_SPAN -> builder.withStyle(
                 SpanStyle(fontFamily = FontFamily.Monospace, background = Color(0x1F808080))

@@ -1,0 +1,11 @@
+First F-Droid release.
+
+* Native reader and editor for EPUB, Markdown, and plain text.
+* No WebView, no network, no analytics.
+* Compose editor with a new-file flow.
+* Reader bottom bar: zoom, font-size, user-selectable font.
+* Solarized theme, Roboto Slab interface font.
+* Biometric-locked private documents space, excluded from backup
+  and device-to-device transfer.
+* Every share from the private space needs a fresh biometric check.
+* Bundled samples: UDHR (français), Little Women (EPUB).

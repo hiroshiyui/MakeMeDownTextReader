@@ -300,6 +300,15 @@ private fun sharePrivateDocument(context: Context, doc: PrivateDocument) {
  *  can both reference the same constant. */
 const val PRIVATE_URI_PREFIX: String = "private://"
 
+/**
+ * URI scheme used to mark a [Screen.Reader] target as a bundled
+ * sample document under `app/src/main/assets/`. The remainder of the
+ * URI after the prefix is the asset path passed to
+ * `DocumentLoader.loadSample`. Samples are read-only — ReaderScreen
+ * hides its Edit button for any URI starting with this prefix.
+ */
+const val SAMPLE_URI_PREFIX: String = "sample://"
+
 @Composable
 private fun PrivateDocumentRow(
     doc: PrivateDocument,
