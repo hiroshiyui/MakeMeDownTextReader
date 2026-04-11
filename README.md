@@ -82,10 +82,12 @@ Markdown files in place without bouncing out to a different tool.
   buttons). The reader content deliberately uses a separate,
   user-selectable font, so changing the reading font from Settings or
   the bottom bar has no effect on the app's chrome and vice versa.
-- Custom adaptive launcher icon: an open book with text lines and a
-  pair of round reading glasses resting above it, rendered in the
-  Solarized palette. Includes a monochrome variant for Android 13+
-  themed icons.
+- Custom adaptive launcher icon: a Crying Cat Face (U+1F63F 😿),
+  rasterised from Noto Color Emoji, sitting above a bold **MMD**
+  wordmark whose letters are sliced by horizontal scanline stripes.
+  Solarized base2 background. The monochrome variant for Android 13+
+  themed icons shows just the scanlined MMD wordmark so the themed
+  tint stays legible.
 
 ## Requirements
 
@@ -146,6 +148,12 @@ provider.
   at `app/src/main/res/font/roboto_slab_{regular,medium,bold}.ttf`.
   Apache License 2.0. Full text at
   `app/src/main/assets/fonts/RobotoSlab-LICENSE.txt`.
+- [**Noto Color Emoji**](https://github.com/googlefonts/noto-emoji) —
+  used to rasterise the Crying Cat Face glyph (U+1F63F) baked into
+  the launcher icon at
+  `app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.webp`.
+  The font itself is not redistributed with the app; only the
+  rendered bitmap of the single glyph is. SIL Open Font License 1.1.
 - [**org.jetbrains:markdown**](https://github.com/JetBrains/markdown)
   0.7.3 — Apache License 2.0.
 - [**kotlinx.serialization**](https://github.com/Kotlin/kotlinx.serialization)
