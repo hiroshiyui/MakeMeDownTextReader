@@ -11,6 +11,15 @@ composeBom = "2025.12.00"
 markdown = "0.7.3"
 kotlinxSerializationJson = "1.7.3"
 biometric = "1.1.0"
+# Forced upgrade of androidx.fragment past the ancient 1.2.5 that
+# biometric 1.1.0 → appcompat 1.2.0 drags in. Fragment 1.2.5's
+# FragmentActivity.startActivityForResult() unconditionally enforces
+# the 16-bit request-code check, which conflicts with
+# ActivityResultRegistry's (higher-bit) generated request codes and
+# crashes every SAF launcher (Open / Create / Save) 100% of the time.
+# Fragment 1.6+ delegates to ComponentActivity's registry path and
+# sidesteps the check.
+androidxFragment = "1.8.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +39,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-material3-adaptive-navigation-suite = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite" }
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "androidxFragment" }
 jetbrains-markdown = { group = "org.jetbrains", name = "markdown", version.ref = "markdown" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 

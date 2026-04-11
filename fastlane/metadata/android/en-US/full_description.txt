@@ -1,0 +1,73 @@
+MakeMeDown Text Reader is a small, opinionated reader and editor for
+EPUB 3, Markdown, and plain text documents on Android. It is built
+with Kotlin and Jetpack Compose, renders everything natively (no
+WebView), and ships with a Solarized colour scheme and Roboto Slab as
+the interface font.
+
+Reading
+
+* EPUB 3, Markdown, and plain text, all rendered as native Compose
+  text. No WebView, no JavaScript bridge.
+* EPUBs are paginated by chapter; Markdown and plain text are
+  scrolled inside a LazyColumn for fast jumps through long documents.
+* A reader bottom bar offers zoom and base font-size controls.
+* The reader font is independent of the app's chrome font and can be
+  switched live from Settings without restarting the app.
+
+Editing
+
+* In-place Compose-based editor for Markdown and plain text.
+* New-file creation flow from the home screen.
+* Saves go through the system file picker (Storage Access Framework),
+  so files stay wherever you keep them.
+
+Biometric-locked private documents space
+
+* An optional, app-private documents store under the app's internal
+  files directory, separate from the Storage Access Framework flow.
+* Locked behind your enrolled biometric, or your system PIN, pattern,
+  or password, whichever you have set up. The unlock state is scoped
+  to the current app process; quitting the app re-locks it.
+* The private documents directory is excluded from both Android's
+  cloud Auto Backup and from device-to-device transfer, so the files
+  do not leave the device with the rest of your app data.
+* Sharing or exporting a file out of the private space requires both
+  an explicit confirmation dialog and a fresh biometric or
+  device-credential check on every share. There is no time-based
+  "I authenticated recently" cache.
+
+Look and feel
+
+* Solarized colour scheme applied across every Material 3 role for
+  both light and dark modes. Dynamic colour (Material You) is off by
+  default so the Solarized palette is what you actually see.
+* Roboto Slab is vendored as the interface font for every piece of
+  Material 3 chrome: top bars, dialogs, settings, snackbars, buttons.
+  The reader's text uses a separate, user-selectable font family.
+* Custom adaptive launcher icon: a Crying Cat Face above a bold
+  "MMD" wordmark whose letters are sliced by horizontal scanline
+  stripes, on a Solarized base2 background. Includes a monochrome
+  variant for Android 13+ themed icons.
+
+What it doesn't do
+
+* No network access. No analytics. No telemetry. No ads. No crash
+  reporting.
+* No WebView. No JNI. No native code.
+* The only declared permission is USE_BIOMETRIC, which is needed for
+  the private space's unlock prompt and is granted automatically by
+  the system at install time.
+
+Privacy
+
+All data stays on-device. Storage Access Framework documents stay
+where you picked them. Private documents live in the app's internal
+files directory and are never backed up or transferred. Biometric
+matching happens in the system BiometricPrompt API; the app never
+sees your fingerprint or face data.
+
+License
+
+MakeMeDown Text Reader is free software, released under the GNU
+General Public License, version 3 or (at your option) any later
+version.

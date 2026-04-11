@@ -34,8 +34,8 @@ android {
         applicationId = "org.ghostsinthelab.app.makedown"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -79,6 +79,11 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.biometric)
+    // Pinned ahead of biometric 1.1.0's transitive 1.2.5 — see the
+    // androidxFragment comment in libs.versions.toml for the bug
+    // history. Without this, every SAF launcher.launch() call crashes
+    // with "Can only use lower 16 bits for requestCode".
+    implementation(libs.androidx.fragment)
     implementation(libs.jetbrains.markdown)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)

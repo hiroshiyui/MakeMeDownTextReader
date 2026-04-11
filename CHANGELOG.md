@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-11
+
+Patch release that fixes a hard crash on the file-open / file-create
+path, plus the first F-Droid metadata tree.
+
+### Fixed
+
+- **Crash when tapping *Open file* or any *New …* action.** The
+  `androidx.fragment` library was being resolved transitively to
+  `1.2.5` via `androidx.biometric:biometric:1.1.0` →
+  `androidx.appcompat:1.2.0`. Fragment `1.2.5`'s
+  `FragmentActivity.startActivityForResult` unconditionally rejects
+  request codes with any of the upper 16 bits set, but
+  `ActivityResultRegistry` generates request codes starting at
+  `0x00010000`, so every SAF launcher (Open, Create Markdown, Create
+  plain text, Share) crashed 100% of the time on first tap.
+  `androidx.fragment` is now pinned to `1.8.5` in
+  `gradle/libs.versions.toml` and declared as a direct dependency in
+  `app/build.gradle.kts`, so Gradle's conflict resolution upgrades
+  past the transitive `1.2.5`. Fragment `1.6+` delegates the result
+  path to `ComponentActivity`'s registry and sidesteps the check.
+
+### Added
+
+- F-Droid metadata tree under `fastlane/metadata/android/en-US/`:
+  title, short and full descriptions, a per-version changelog, and
+  four 1080 × 2400 phone screenshots (home, settings, Markdown
+  reader, Markdown editor). This is the first time the app has
+  carried F-Droid listing metadata in-repo.
+
 ## [1.0.0] - 2026-04-11
 
 First public release.
@@ -52,5 +82,6 @@ First public release.
   for Android 13+ themed icons that shows just the scanlined MMD
   wordmark.
 
-[Unreleased]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/hiroshiyui/MakeMeDownTextReader/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/hiroshiyui/MakeMeDownTextReader/commits/1.0.0
